@@ -1,5 +1,7 @@
 from xml.dom import minidom
 import sys
+import snap
+import sexpdata
 
 ########################################
 
@@ -19,25 +21,47 @@ class eventMention:
 ########################################
 
 class docStructure:
+	xmldoc = None
+	wordfeatures = None
+	numsentences = None
+	numtokens = None
+	parsegraphs = None
+	dependgraphs = None
+	entitymentions = None
+	entitycoref = None
+
 	
 	def __init__(self, fname):
 		self.xmldoc = minidom.parse(fname)
-		itemlist = self.xmldoc.getElementsByTagName('sentences')
-
 		self.wordfeatures = {}
-		for i in itemlist:
-			## "inside sentences"
-			sentencelist = i.getElementsByTagName('sentence')
-			for sent in sentencelist:
-				sentenceid = sent.getAttribute('id')
-				tokenlist = sent.getElementsByTagName('token')			
-				for tok in tokenlist:
-					tokenid = tok.getAttribute('id')	
-					word = tok.getElementsByTagName('word')[0] #only one word is present per token	
-					lemma = tok.getElementsByTagName('lemma')[0] #only one word is present per token	
-					pos = tok.getElementsByTagName('POS')[0] #only one word is present per token	
-					self.wordfeatures[(sentenceid, tokenid)] = [word.firstChild.data, lemma.firstChild.data, pos.firstChild.data]
-		print self.wordfeatures
+		self.parsegraphs = {}
+		self.dependgraphs = {}
+		sentencelist = self.xmldoc.getElementsByTagName('sentences')[0].getElementsByTagName('sentence')
+		self.numsentences = len(sentencelist)
+		self.numtokens = []
+
+		for sent in sentencelist:
+			sentenceid = int(sent.getAttribute('id'))
+			tokenlist = sent.getElementsByTagName('token')			
+			self.numtokens.append(len(tokenlist))
+			for tok in tokenlist:
+				tokenid = int(tok.getAttribute('id'))	
+				word = tok.getElementsByTagName('word')[0] 		#only one word is present per token	
+				lemma = tok.getElementsByTagName('lemma')[0] 	#only one lemma is present per token	
+				pos = tok.getElementsByTagName('POS')[0] 		#only one pos tag is present per token	
+				self.wordfeatures[(sentenceid, tokenid)] = [word.firstChild.data, lemma.firstChild.data, pos.firstChild.data]
+
+			deplabels = {}
+			depgraph = snap.TNGraph.New()
+			for nid in xrange(self.numtokens[-1] + 1):
+				depgraph.AddNode(nid)
+			basicdep = sent.getElementsByTagName('dependencies')[0]
+			for dep in basicdep.getElementsByTagName('dep'):
+				srcid = int(dep.getElementsByTagName('governor')[0].getAttribute('idx'))
+				dstid = int(dep.getElementsByTagName('dependent')[0].getAttribute('idx'))
+				depgraph.AddEdge(srcid,dstid)
+				deplabels[(srcid,dstid)] = dep.getAttribute('type')
+			self.dependgraphs[sentenceid] = (depgraph, deplabels)
 
 
 	def get_entity_mentions(self):
@@ -51,27 +75,14 @@ class docStructure:
 			corefcons = []
 			for m in corefmentions:
 				txt = m.getElementsByTagName("text")[0].firstChild.data
-				sentid = m.getElementsByTagName("sentence")[0].firstChild.data
-				start = m.getElementsByTagName("start")[0].firstChild.data
-				end = m.getElementsByTagName("end")[0].firstChild.data
-				head = m.getElementsByTagName("head")[0].firstChild.data	
+				sentid = int(m.getElementsByTagName("sentence")[0].firstChild.data)
+				start = int(m.getElementsByTagName("start")[0].firstChild.data)
+				end = int(m.getElementsByTagName("end")[0].firstChild.data)
+				head = int(m.getElementsByTagName("head")[0].firstChild.data)	
 				corefcons.append(len(self.entitymentions))
 				self.entitymentions.append(entityMention(txt,sentid,start,end,head))
 			self.entitycoref.append(corefcons)
 
-
-'''		itemlist = self.xmldoc.getElementsByTagName('mention')
-		self.entitylist = []
-		for i in itemlist:
-			txt = i.getElementsByTagName("text")[0].firstChild.data
-			sentid = i.getElementsByTagName("sentence")[0].firstChild.data
-			start = i.getElementsByTagName("start")[0].firstChild.data
-			end = i.getElementsByTagName("end")[0].firstChild.data
-			head = i.getElementsByTagName("head")[0].firstChild.data
-			self.entitylist.append(entityObj(txt, sentid, start, end, head))
-			print txt, sentid, start, end, head
-
-		print self.entitylist'''
 
 
 	def get_event_mentions():
