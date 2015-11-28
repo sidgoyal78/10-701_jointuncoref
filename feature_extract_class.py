@@ -2,6 +2,7 @@ from xml.dom import minidom
 import sys
 import snap
 import sexpdata
+from get_sexp_lists import get_sexp_output
 
 ########################################
 
@@ -70,6 +71,10 @@ class docStructure:
 				deplabels[(srcid,dstid)] = dep.getAttribute('type')
 			self.dependgraphs[sentenceid] = (depgraph, deplabels)
 
+			#SHIT WILL CHANGE HERE
+			parstr = sent.getElementsByTagName('parse')[0].firstChild.data
+			parlist = get_sexp_output(parstr)
+			self.parsegraphs[sentenceid] = parlist
 
 
 	def get_entity_mentions(self):
