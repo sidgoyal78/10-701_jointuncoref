@@ -1,1 +1,1 @@
-# 10-701 Semi supervised joint coreference resolution
+# 10-701_jointuncoref
