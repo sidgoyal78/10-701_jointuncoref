@@ -16,7 +16,13 @@ class entityMention:
 ########################################
 
 class eventMention:
-	pass
+	def __init__(self, txt, sentid, start, end, head):
+		self.txt = txt
+		self.sentid = sentid
+		self.start = start
+		self.end = end
+		self.head = head
+
 
 ########################################
 
@@ -29,6 +35,7 @@ class docStructure:
 	dependgraphs = None
 	entitymentions = None
 	entitycoref = None
+	eventmentions = None
 
 	
 	def __init__(self, fname):
@@ -64,6 +71,7 @@ class docStructure:
 			self.dependgraphs[sentenceid] = (depgraph, deplabels)
 
 
+
 	def get_entity_mentions(self):
 		itemlist = self.xmldoc.getElementsByTagName('coreference')
 		self.entitymentions = []
@@ -84,10 +92,46 @@ class docStructure:
 			self.entitycoref.append(corefcons)
 
 
+	def get_event_mentions(self):
+		eventpostags = ['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ']
+		lemmatoignore = ['have', 'be', 'seem']
+		self.eventmentions = []
+		
+		for sentid in range(1, self.numsentences + 1):  # 1-indexing followed in the hashmap
+			ntok = self.numtokens[sentid - 1]  # as the list is 0-indexed
+			flag = 0	#Whether previous words were verbs
+			start = -1
+			end = -1
+			tempwlist = []
+			for tokid in range(1, ntok + 1):
+				if self.wordfeatures[(sentid,tokid)][2] in eventpostags and self.wordfeatures[(sentid,tokid)][1] not in lemmatoignore:
+					if flag == 0:
+						start = tokid
+						end = -1
+						tempwlist = []
+						tempwlist.append(self.wordfeatures[(sentid,tokid)][0])
+						flag = 1
+					elif flag == 1:
+						tempwlist.append(self.wordfeatures[(sentid,tokid)][0])
+				else:
+					if flag == 1:
+						end = tnum
+						
+						#### NOW CALL GRAPH FUNCTION TO GET HEAD WORD ID	
+						## As of now, head = start
+						head = start
+						txt = " ".join(tempwlist)
+						self.eventmentions.append(eventMention(txt,sentid,start,end,head))	
+						flag = 0
 
-	def get_event_mentions():
-		pass
-
+			if flag == 1:
+				end = ntok + 1
+				#### NOW CALL GRAPH FUNCTION TO GET HEAD WORD ID	
+				## As of now, head = start
+				head = start
+				txt = " ".join(tempwlist)
+				self.eventmentions.append(eventMention(txt,sentid,start,end,head))
+				
 
 '''	def gen_entity_mention_features():
 		pass
@@ -101,7 +145,7 @@ class docStructure:
 def main():
 	fname = sys.argv[1]
 	obj = docStructure(fname)
-	obj.get_entity_mentions()
+	obj.get_event_mentions()
 
 if __name__ == "__main__":
 	main()
