@@ -1,13 +1,15 @@
 from xml.dom import minidom
-import sys
 import snap
+import sys
 import sexpdata
-from construct_parse_tree import Node, ParseTree
 import numpy as np
 from nltk.corpus import wordnet as wn
+from gensim.models import Word2Vec
 from collections import OrderedDict as OD
+from construct_parse_tree import Node, ParseTree
+# for the wordnet, POS, class, dependency relation features
+from feat_wordnet_pos_class import get_wordnet_feat, get_pos_feat, get_class_feat, get_dependency_rellabel, get_word2vec_feat
 
-from feat_wordnet_pos_class import get_wordnet_feat, get_pos_feat, get_class_feat, get_dependency_rellabel  # for the wordnet, POS, class, dependency relation features
 
 ########################################
 
@@ -29,7 +31,6 @@ class eventMention:
 		self.end = end
 		self.head = head
 
-
 ########################################
 
 class docStructure:
@@ -37,12 +38,12 @@ class docStructure:
 	wordfeatures = None
 	numsentences = None
 	numtokens = None
-	parsetrees = None	#change will happen
+	parsetrees = None
 	dependgraphs = None
 	entitymentions = None
 	entitycoref = None
-	eventmentions = None	#change will happen here
-
+	eventmentions = None
+	w2vmodel = None
 	eventfeatures = None
 	entityfeatures = None	
 	
@@ -78,10 +79,14 @@ class docStructure:
 				deplabels[(srcid,dstid)] = dep.getAttribute('type')
 			self.dependgraphs[sentenceid] = (depgraph, deplabels)
 
-			#Shit will change here
 			parstr = sent.getElementsByTagName('parse')[0].firstChild.data
 			partreeobj = ParseTree(parstr, self.numtokens[-1])
-			self.parsetrees[sentenceid] = partreeobj  # for getting the depth call partreeobj.get_depth(<tokenid>)
+			self.parsetrees[sentenceid] = partreeobj  #For getting the depth call partreeobj.get_depth(<tokenid>)
+		self.get_entity_mentions()
+		self.get_event_mentions()
+		self.w2vmodel = Word2Vec.load_word2vec_format('/Users/sidharthgupta/Downloads/gnvecs.bin.gz', binary=True)
+		self.get_entity_mention_features()
+		self.get_event_mention_features()
 
 
 	def get_entity_mentions(self):
@@ -125,8 +130,6 @@ class docStructure:
 				else:
 					if flag == True:
 						end = tokid
-						
-						#### NOW CALL GRAPH FUNCTION TO GET HEAD WORD ID
 						head = self.gen_event_mention_head(sentid,start,end)
 						txt = " ".join(tempwlist)
 						self.eventmentions.append(eventMention(txt,sentid,start,end,head))	
@@ -134,7 +137,6 @@ class docStructure:
 
 			if flag == True:
 				end = ntok + 1
-				#### NOW CALL GRAPH FUNCTION TO GET HEAD WORD ID
 				head = self.gen_event_mention_head(sentid,start,end)
 				txt = " ".join(tempwlist)
 				self.eventmentions.append(eventMention(txt,sentid,start,end,head))
@@ -150,17 +152,20 @@ class docStructure:
 				return x
 
 
-
 	# lexical features comprise of word2vec features for headword, lemma and depth of head word in dependency tree
 	def gen_lexical_features(self, eobj):
-		depth_parsetree = self.parsetrees[eobj.sentid].get_depth(eobj.head)
-		return np.array([depth_parsetree])  ### TO ALSO INCLUDE WORD2VEC features	
+		(word,lemma,pos) = self.wordfeatures[(eobj.sentid,eobj.head)]
+		f1 = get_word2vec_feat(self.w2vmodel,word)
+		f2 = get_word2vec_feat(self.w2vmodel,lemma)
+		f3 = np.array([self.parsetrees[eobj.sentid].get_depth(eobj.head)])
+		return np.concatenate((f1,f2,f3), axis=0)
+
 	
 	# class features comprise of POS feature vector of head word and WORD-CLASS feature vector of head word
 	def gen_class_features(self, eobj):
 		postag = self.wordfeatures[(eobj.sentid, eobj.head)][2]
 		pos_feat = get_pos_feat(postag)
-                class_feat = get_class_feat(postag)
+		class_feat = get_class_feat(postag)
 		return np.concatenate((pos_feat, class_feat), axis = 0)
 
 	# wordnet feature comprise only of the lexicographic synset based features 
@@ -175,20 +180,39 @@ class docStructure:
 		sentid = eobj.sentid
 		tokenid = eobj.head
 		N = 2
-		# doing only the POS as of now, 
-		## Note: HAVE TO INCLUDE WORD2VEC 
-		
-		lst = []
+		wveclist = np.array([])	
+		poslst = []
 		maxtokens = self.numtokens[sentid - 1]
 		for i in range(tokenid - N, tokenid)+range(tokenid + 1, tokenid + 1 + N):
 			if i < 1 or i > maxtokens:
-				ans = get_pos_feat('')
+				posi = get_pos_feat('')
+				wveclist = np.concatenate((wveclist,get_word2vec_feat(self.w2vmodel,'')),axis=0)
 			else:
-				ans = get_pos_feat(self.wordfeatures[(sentid, i)][2])
-			lst += ans
+				posi = get_pos_feat(self.wordfeatures[(sentid, i)][2])
+				wveclist = np.concatenate((wveclist,get_word2vec_feat(self.w2vmodel,self.wordfeatures[(sentid, i)][1])),axis=0)
+			poslst += posi
+		return np.concatenate((np.array(poslst),wveclist),axis=0)
 
-		return np.array(lst)
-			
+
+	def gen_dependency_features(self,eobj):
+		depgraph = self.dependgraphs[eobj.sentid][0]
+		deplabels = self.dependgraphs[eobj.sentid][1]
+		hwid = eobj.head
+		deprellabel = ''
+		dephw = ''
+		deppos = ''
+		for x in depgraph.GetNI(hwid).GetInEdges():
+			deprellabel = deplabels[(x,hwid)]
+			if x != 0:	#In case x depends on root, then word features are not defined
+				dephw = self.wordfeatures[(eobj.sentid,x)][1]
+				deppos = self.wordfeatures[(eobj.sentid,x)][2]
+			break
+		#return(deprellabel,dephw,deppos)
+		f1_deplabel = np.array(get_dependency_rellabel(deprellabel))
+		f2_dephw = 	get_word2vec_feat(self.w2vmodel,dephw)
+		f3_deppos = np.array(get_pos_feat(deppos))
+		return np.concatenate((f1_deplabel, f2_dephw, f3_deppos), axis = 0)
+
 
 	def get_entity_mention_features(self):
 		self.entityfeatures = []
@@ -219,28 +243,10 @@ class docStructure:
 			ans = np.concatenate((a,b,c,d,e), axis = 0)
 			self.eventfeatures.append(ans)
 
-	def gen_dependency_features(self,eobj):
-		depgraph = self.dependgraphs[eobj.sentid][0]
-		deplabels = self.dependgraphs[eobj.sentid][1]
-		hwid = eobj.head
-		deprellabel = ''
-		dephw = ''
-		deppos = ''
-		for x in depgraph.GetNI(hwid).GetInEdges():
-			deprellabel = deplabels[(x,hwid)]
-			if x != 0:	#In case x depends on root, then word features are not defined
-				dephw = self.wordfeatures[(eobj.sentid,x)][1]
-				deppos = self.wordfeatures[(eobj.sentid,x)][2]
-			break
-		#return(deprellabel,dephw,deppos)
-		f1_deplabel = get_dependency_rellabel(deprellabel)
-		f2_dephw = [] # USE WORD2VEC	
-		f3_deppos = get_pos_feat(deppos)
-		return np.concatenate((f1_deplabel, f2_dephw, f3_deppos), axis = 0)
 
 ########################################			
 
-def main():
+'''def main():
 	fname = sys.argv[1]
 	obj = docStructure(fname)
 	obj.get_event_mentions()
@@ -250,3 +256,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+'''
