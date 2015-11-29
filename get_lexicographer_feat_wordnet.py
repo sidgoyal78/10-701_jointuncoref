@@ -14,4 +14,4 @@ def get_lxvector_wn(word):
 
 
 ### testing
-print get_lxvector_wn('walk')		
+print get_lxvector_wn('walk')

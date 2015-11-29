@@ -1,1 +1,1 @@
-python construct_newds.py data newdata meta.txt 
+python construct_clean_data.py data newdata meta.txt 
