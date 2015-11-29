@@ -3,6 +3,11 @@ import sys
 import snap
 import sexpdata
 from construct_parse_tree import Node, ParseTree
+import numpy as np
+from nltk.corpus import wordnet as wn
+from collections import OrderedDict as OD
+
+from feat_wordnet_pos_class import get_wordnet_feat, get_pos_feat, get_class_feat, get_dependency_rellabel  # for the wordnet, POS, class, dependency relation features
 
 ########################################
 
@@ -38,6 +43,8 @@ class docStructure:
 	entitycoref = None
 	eventmentions = None	#change will happen here
 
+	eventfeatures = None
+	entityfeatures = None	
 	
 	def __init__(self, fname):
 		self.xmldoc = minidom.parse(fname)
@@ -143,24 +150,93 @@ class docStructure:
 				return x
 
 
-'''	def gen_entity_mention_features():
-		pass
 
+	# lexical features comprise of word2vec features for headword, lemma and depth of head word in dependency tree
+	def gen_lexical_features(self, eobj):
+		depth_parsetree = self.parsetrees[eobj.sentid].get_depth(eobj.head)
+		return np.array([depth_parsetree])  ### TO ALSO INCLUDE WORD2VEC features	
+	
+	# class features comprise of POS feature vector of head word and WORD-CLASS feature vector of head word
+	def gen_class_features(self, eobj):
+		postag = self.wordfeatures[(eobj.sentid, eobj.head)][2]
+		pos_feat = get_pos_feat(postag)
+                class_feat = get_class_feat(postag)
+		return np.concatenate((pos_feat, class_feat), axis = 0)
 
-	def gen_event_mention_features():
-		pass'''
+	# wordnet feature comprise only of the lexicographic synset based features 
+	def gen_wordnet_features(self, eobj):
+		word = self.wordfeatures[(eobj.sentid, eobj.head)][0]
+		return np.array(get_wordnet_feat(word))
+	
+	# context features consist of 2 things:
+	#	1. word2vec features of 2 words left to the head word and of 2 words to the right of head word
+	#	2  POS features of 2 words left to the head word and of 2 words to the right of head word
+	def gen_context_features(self, eobj):
+		sentid = eobj.sentid
+		tokenid = eobj.head
+		N = 2
+		# doing only the POS as of now, 
+		## Note: HAVE TO INCLUDE WORD2VEC 
+		
+		lst = []
+		maxtokens = self.numtokens[sentid - 1]
+		for i in range(tokenid - N, tokenid)+range(tokenid + 1, tokenid + 1 + N):
+			if i < 1 or i > maxtokens:
+				ans = get_pos_feat('')
+			else:
+				ans = get_pos_feat(self.wordfeatures[(sentid, i)][2])
+			lst += ans
 
-	def gen_entity_mention_features(self):
+		return np.array(lst)
+			
+
+	def get_entity_mention_features(self):
 		self.entityfeatures = []
-		
-		for ent in self.entitymentions:
-			reqdlist = self.wordfeatures[(ent.sentid, ent.head)]
-		
-			pos_feat = get_pos_features(reqdlist[2])
-			class_feat = get_class_features(reqdlist[2])
-			wordnet_feat = get_lxvector_wordnet(reqdlist[0])
-			depth_parsetree = self.parsetrees[ent.sentid].get_depth(ent.head)
-		
+		for entmen in self.entitymentions:
+			a = self.gen_lexical_features(entmen)
+			b = self.gen_class_features(entmen)
+			c = self.gen_wordnet_features(entmen)
+			d = self.gen_context_features(entmen)
+			e = self.gen_dependency_features(entmen)
+#			print "lexical    ", a
+#			print "class      ", b
+#			print "wordnet    ", c
+#			print "context    ", d
+#			print "dependency    ", e
+#			print	
+			ans = np.concatenate((a,b,c,d,e), axis = 0)
+			self.entityfeatures.append(ans)
+
+
+	def get_event_mention_features(self):
+		self.eventfeatures = []
+		for evemen in self.eventmentions:
+			a = self.gen_lexical_features(evemen)
+			b = self.gen_class_features(evemen)
+			c = self.gen_wordnet_features(evemen)
+			d = self.gen_context_features(evemen)
+			e = self.gen_dependency_features(evemen)
+			ans = np.concatenate((a,b,c,d,e), axis = 0)
+			self.eventfeatures.append(ans)
+
+	def gen_dependency_features(self,eobj):
+		depgraph = self.dependgraphs[eobj.sentid][0]
+		deplabels = self.dependgraphs[eobj.sentid][1]
+		hwid = eobj.head
+		deprellabel = ''
+		dephw = ''
+		deppos = ''
+		for x in depgraph.GetNI(hwid).GetInEdges():
+			deprellabel = deplabels[(x,hwid)]
+			if x != 0:	#In case x depends on root, then word features are not defined
+				dephw = self.wordfeatures[(eobj.sentid,x)][1]
+				deppos = self.wordfeatures[(eobj.sentid,x)][2]
+			break
+		#return(deprellabel,dephw,deppos)
+		f1_deplabel = get_dependency_rellabel(deprellabel)
+		f2_dephw = [] # USE WORD2VEC	
+		f3_deppos = get_pos_feat(deppos)
+		return np.concatenate((f1_deplabel, f2_dephw, f3_deppos), axis = 0)
 
 ########################################			
 
@@ -168,6 +244,9 @@ def main():
 	fname = sys.argv[1]
 	obj = docStructure(fname)
 	obj.get_event_mentions()
+	obj.get_entity_mentions()
+	obj.get_entity_mention_features()
+	obj.get_event_mention_features()
 
 if __name__ == "__main__":
 	main()
