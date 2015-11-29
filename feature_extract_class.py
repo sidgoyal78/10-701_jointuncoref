@@ -150,6 +150,18 @@ class docStructure:
 	def gen_event_mention_features():
 		pass'''
 
+	def gen_entity_mention_features(self):
+		self.entityfeatures = []
+		
+		for ent in self.entitymentions:
+			reqdlist = self.wordfeatures[(ent.sentid, ent.head)]
+		
+			pos_feat = get_pos_features(reqdlist[2])
+			class_feat = get_class_features(reqdlist[2])
+			wordnet_feat = get_lxvector_wordnet(reqdlist[0])
+			depth_parsetree = self.parsetrees[ent.sentid].get_depth(ent.head)
+		
+
 ########################################			
 
 def main():
