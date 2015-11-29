@@ -143,12 +143,38 @@ class docStructure:
 				return x
 
 
-'''	def gen_entity_mention_features():
-		pass
+	def get_entity_mention_features(self):
+		for entmen in self.entitymentions:
+			self.gen_lexical_features(entmen)
+			self.gen_wordnet_features(entmen)
+			self.gen_context_features(entmen)
+			self.gen_dependency_features(entmen)
 
 
-	def gen_event_mention_features():
-		pass'''
+	def get_event_mention_features(self):
+		l = []
+		for evemen in self.eventmentions:
+			#self.gen_lexical_features(evemen)
+			#self.gen_wordnet_features(evemen)
+			#self.gen_context_features(evemen)
+			l.append(self.gen_dependency_features(evemen))
+		return l
+
+	def gen_dependency_features(self,eobj):
+		depgraph = self.dependgraphs[eobj.sentid][0]
+		deplabels = self.dependgraphs[eobj.sentid][1]
+		hwid = eobj.head
+		deprellabel = ''
+		dephw = ''
+		deppos = ''
+		for x in depgraph.GetNI(hwid).GetInEdges():
+			deprellabel = deplabels[(x,hwid)]
+			if x != 0:	#In case x depends on root, then word features are not defined
+				dephw = self.wordfeatures[(eobj.sentid,x)][1]
+				deppos = self.wordfeatures[(eobj.sentid,x)][2]
+			break
+		return(deprellabel,dephw,deppos)
+
 
 ########################################			
 
