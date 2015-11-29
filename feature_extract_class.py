@@ -47,7 +47,7 @@ class docStructure:
 	eventfeatures = None
 	entityfeatures = None	
 	
-	def __init__(self, fname):
+	def __init__(self, fname, w2vname):
 		self.xmldoc = minidom.parse(fname)
 		self.wordfeatures = {}
 		self.parsetrees = {}
@@ -84,7 +84,8 @@ class docStructure:
 			self.parsetrees[sentenceid] = partreeobj  #For getting the depth call partreeobj.get_depth(<tokenid>)
 		self.get_entity_mentions()
 		self.get_event_mentions()
-		self.w2vmodel = Word2Vec.load_word2vec_format('/Users/sidharthgupta/Downloads/gnvecs.bin.gz', binary=True)
+		self.w2vmodel = w2vname
+		#self.w2vmodel = Word2Vec.load_word2vec_format('/Users/sidharthgupta/Downloads/gnvecs.bin.gz', binary=True)
 		self.get_entity_mention_features()
 		self.get_event_mention_features()
 
