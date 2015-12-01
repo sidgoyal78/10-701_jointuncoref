@@ -3,13 +3,16 @@ import os
 import dill
 import  copy
 
-
 class storeClass:
-	def __init__(self, wordfeatures, entityf, eventf, entitycoref, fname):
+	def __init__(self, numsent, numtok, wordfeatures, entityf, eventf, entitycoref, vso, fname):
+
+        	self.numsentences = numsent
+        	self.numtokens = numtok
 		self.wordfeatures = copy.deepcopy(wordfeatures)
 		self.entityfeatures = entityf
 		self.eventfeatures = eventf
 		self.entitycoref = entitycoref	
+	        self.verbsubobj = vso
 		self.filename = fname
 
 def main():
@@ -23,12 +26,12 @@ def main():
 	for f in os.listdir(datapath):
 		fname = datapath + '/' + f
 		temp = docStructure(fname, w2vmod)
-		stobjlist.append(storeClass(temp.wordfeatures[:], temp.entityfeatures[:], temp.eventfeatures[:], temp.entitycoref[:], fname))
-		dsobjlist.append(temp)
+		stobjlist.append(storeClass(temp.numsentences, temp.numtokens[:], temp.wordfeatures, temp.entityfeatures[:], temp.eventfeatures[:], temp.entitycoref[:], temp.verbsubobj[:], fname))
+#		dsobjlist.append(temp)
 
-	print dsobjlist
+	print stobjlist
 	
-	dill.dump(stobjlist, open('topic1_DS_objects.p', 'wb'))
+	dill.dump(stobjlist, open('topic1_DS_objects.pkl', 'wb'))
 		
 
 

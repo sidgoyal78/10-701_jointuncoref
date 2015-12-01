@@ -7,7 +7,7 @@ from nltk.corpus import wordnet as wn
 from gensim.models import Word2Vec
 from collections import OrderedDict as OD
 from construct_parse_tree import Node, ParseTree
-# for the wordnet, POS, class, dependency relation features
+#For the wordnet, POS, class, dependency relation, and word2vec representation features
 from feat_wordnet_pos_class import get_wordnet_feat, get_pos_feat, get_class_feat, get_dependency_rellabel, get_word2vec_feat
 
 
@@ -43,11 +43,13 @@ class docStructure:
 	entitymentions = None
 	entitycoref = None
 	eventmentions = None
+	verbsubobj = None
 	w2vmodel = None
 	eventfeatures = None
 	entityfeatures = None	
-	
-	def __init__(self, fname, w2vname):
+
+
+	def __init__(self, fname, w2vname=None):
 		self.xmldoc = minidom.parse(fname)
 		self.wordfeatures = {}
 		self.parsetrees = {}
@@ -82,10 +84,12 @@ class docStructure:
 			parstr = sent.getElementsByTagName('parse')[0].firstChild.data
 			partreeobj = ParseTree(parstr, self.numtokens[-1])
 			self.parsetrees[sentenceid] = partreeobj  #For getting the depth call partreeobj.get_depth(<tokenid>)
+
 		self.get_entity_mentions()
 		self.get_event_mentions()
 		self.w2vmodel = w2vname
-		#self.w2vmodel = Word2Vec.load_word2vec_format('/Users/sidharthgupta/Downloads/gnvecs.bin.gz', binary=True)
+		self.get_verb_subject_object_relations()
+		
 		self.get_entity_mention_features()
 		self.get_event_mention_features()
 
@@ -151,6 +155,29 @@ class docStructure:
 		for x in range(endtokid-1,starttokid-1,-1):
 			if subgraph.GetNI(x).GetInDeg() == 0:
 				return x
+
+
+	def get_verb_subject_object_relations(self):
+		self.verbsubobj = []
+		for ind,evemen in enumerate(self.eventmentions):
+			vsotup = [ind,-1,-1]
+			sid = evemen.sentid
+			(depgraph,deplabels) = self.dependgraphs[sid]
+			vtid = evemen.head
+			for x in depgraph.GetNI(vtid).GetOutEdges():
+				if deplabels[(vtid,x)] == 'nsubj':
+					#Lookup index of token id x in sentence id sid self.entitymentions (if exists)
+					for i,entmen in enumerate(self.entitymentions):
+						if entmen.sentid == sid:
+							if entmen.start <= x and x < entmen.end:
+								vsotup[1] = i		
+				elif deplabels[(vtid,x)] == 'dobj':
+					for i,entmen in enumerate(self.entitymentions):
+						if entmen.sentid == sid:
+							if entmen.start <= x and x < entmen.end:
+								vsotup[2] = i
+			if vsotup[1] != -1 or vsotup[2] != -1:
+				self.verbsubobj.append(vsotup)
 
 
 	# lexical features comprise of word2vec features for headword, lemma and depth of head word in dependency tree
@@ -223,12 +250,6 @@ class docStructure:
 			c = self.gen_wordnet_features(entmen)
 			d = self.gen_context_features(entmen)
 			e = self.gen_dependency_features(entmen)
-#			print "lexical    ", a
-#			print "class      ", b
-#			print "wordnet    ", c
-#			print "context    ", d
-#			print "dependency    ", e
-#			print	
 			ans = np.concatenate((a,b,c,d,e), axis = 0)
 			self.entityfeatures.append(ans)
 
