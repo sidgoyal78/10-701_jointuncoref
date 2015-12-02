@@ -1,6 +1,7 @@
 import dill
 import numpy as np
-
+import sklearn.cluster as sc
+import matplotlib.pyplot as plt
 
 class PCKMeans:
 	#Variable Initializations
@@ -30,6 +31,7 @@ class PCKMeans:
 	lcureventcons = None
 	metricupdateshift = 0.00001
 
+	objfunctionvalues = None
 
 	def __init__(self,fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter):
 		self.kentity = kentity
@@ -38,6 +40,8 @@ class PCKMeans:
 		self.wsmall = wsmall
 		self.wtiny = wtiny
 		self.numiter = numiter
+
+		self.objfunctionvalues = []
 
 		self.hmentityfeat = {}
 		self.hmeventfeat = {}
@@ -78,8 +82,10 @@ class PCKMeans:
 			self.update_event_clustercents()
 			self.update_event_metric()
 			self.construct_entitycons_from_eventclust()
-			self.compute_objective_function()
-
+			f = self.compute_objective_function()
+			print f
+			self.objfunctionvalues.append(f)
+			
 	
 	def paradistance(self, vec1, vec2, metric):
 		temp = vec1 - vec2
@@ -141,7 +147,7 @@ class PCKMeans:
 				
 			## now we look at distances from the kevent clusters
 			for i in range(self.kevent):
-				distances[i] += self.paradistance(self.hmeventfeat[evtkey], self.hmeventclustercent[i], self.eventmetric)
+				distances[i] += self.paradistance(self.hmeventfeat[evtkey], self.hmeventclustcent[i], self.eventmetric)
 			
 				## now looking at thhe current event constraints		
 				for curevtcon in req_cureventcons:
@@ -156,10 +162,10 @@ class PCKMeans:
 		#store pairwise constraints as tuples in a list: lcurentitycons
 		self.lcurentitycons = []
 		hmtempeventcons = {}
-		for i in range(kevent):
+		for i in range(self.kevent):
 			hmtempeventcons[i] = ([],[])
-		for v,s,o  in lallvso:
-			tempkey = hmeventlab[v]
+		for v,s,o  in self.lallvso:
+			tempkey = self.hmeventlab[v]
 			if s[1] != -1:
 				hmtempeventcons[tempkey][0].append(s)
 			if o[1] != -1:
@@ -178,14 +184,14 @@ class PCKMeans:
 		#store pairwise constraints as tuples in a list: lcureventcons
 		self.lcureventcons = []
 		hmtempentitycons = {}
-		for i in range(kentity):
+		for i in range(self.kentity):
 			hmtempentitycons[i] = ([],[])
-		for v,s,o in lallvso:
+		for v,s,o in self.lallvso:
 			if s[1] != -1:
-				stempkey = hmentitylab[s]
+				stempkey = self.hmentitylab[s]
 				hmtempentitycons[stempkey][0].append(v)
 			if o[1] != -1:
-				otempkey = hmentitylab[o]
+				otempkey = self.hmentitylab[o]
 				hmtempentitycons[otempkey][1].append(v)
 		for tempk, tempv in hmtempentitycons.iteritems():
 			#self.lcureventcons.append()
@@ -258,9 +264,47 @@ class PCKMeans:
 		self.eventmetric = float(nummentions)/self.eventmetric
 
 
-	def initial_kmeans(self,):
-		pass
+	def initial_kmeans(self):
+		self.hmentitylab = {}
+		self.hmeventlab = {}
+		self.hmentityclustcent = {}
+		self.hmeventclustcent = {}
+	
+		obj = sc.KMeans(init = 'k-means++', n_clusters = self.kentity)
+		tempentlist = []
+		hmtempent = {}
+		#populate the temporary hashmap
+		for ent, feat in self.hmentityfeat.iteritems():
+			tempentlist.append(feat)
+			hmtempent[ent] = len(tempentlist) - 1
+			
+		obj.fit(tempentlist)
+		labels = obj.predict(tempentlist)
+		for ent in hmtempent:
+			index = hmtempent[ent]	
+			curlab = labels[index]
+			self.hmentitylab[ent] = curlab
+		
+		for i in range(len(obj.cluster_centers_)):
+			self.hmentityclustcent[i] = obj.cluster_centers_[i]
 
+		## now doing the same for events
+		objevt = sc.KMeans(init = 'k-means++', n_clusters =  self.kevent)
+		tempevtlist = []
+		hmtempevt = {}
+		for evt, feat in self.hmeventfeat.iteritems():
+			tempevtlist.append(feat)
+			hmtempevt[evt] = len(tempevtlist) - 1
+		
+		objevt.fit(tempevtlist)
+		labels = objevt.predict(tempevtlist)	
+		for evt in hmtempevt:
+			index = hmtempevt[evt]
+			curlab = labels[index]
+			self.hmeventlab[evt] = curlab
+		for i in range(len(objevt.cluster_centers_)):
+			self.hmeventclustcent[i] = objevt.cluster_centers_[i]
+			
 
 	def compute_objective_function(self):
 		J = 0.0
@@ -310,19 +354,19 @@ class PCKMeans:
 
 
 
-
-
 #####FOR TESTING PURPOSES ONLY#####
 
 if __name__ == '__main__':
 	fpath = 'topic1_DS_objects.pkl'
-	kentity = 10
-	kevent = 10
+	kentity = 40
+	kevent = 25
 	wlarge = 8
 	wsmall = 4
 	wtiny = 1
 	numiter = 10
 	shitobj = PCKMeans(fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter)
+	plt.plot(shitobj.objfunctionvalues)	
+	plt.show()
 	#print len(shitobj.hmentityfeat.keys()), len(shitobj.hmeventfeat.keys())
 	#print sorted(shitobj.hmentityfeat.keys())
 	#print sorted(shitobj.hmeventfeat.keys())
