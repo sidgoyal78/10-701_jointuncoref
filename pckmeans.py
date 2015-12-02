@@ -28,6 +28,7 @@ class PCKMeans:
 
 	lcurentitycons = None
 	lcureventcons = None
+	metricupdateshift = 0.00001
 
 
 	def __init__(self,fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter):
@@ -113,7 +114,7 @@ class PCKMeans:
 				#now looking at the coref constraints
 				for corefcon in req_corefcons:
 					if self.hmentitylab[corefcon[1]] != i:
-						distances[i] += self.wlarge * self.paradistance(self.hmentitfeat[entkey], self.hmentityfeat[corefcon[1]], self.entitymetric)
+						distances[i] += self.wlarge * self.paradistance(self.hmentityfeat[entkey], self.hmentityfeat[corefcon[1]], self.entitymetric)
 				#now looking at the current entity constraints
 				for curentcon in req_curentitycons:
 					if self.hmentitylab[curentcon[1]] != i:
@@ -210,7 +211,7 @@ class PCKMeans:
 				self.hmentityclustcent[i] /= runcount[i]
 
 
-	def update_event_clustercents(self,):
+	def update_event_clustercents(self):
 		runcount = {}
 		for i in range(self.kevent):
 			self.hmeventclustcent[i] = np.zeros(self.eventfeaturedim)
@@ -224,19 +225,44 @@ class PCKMeans:
 				self.hmeventclustcent[i] /= runcount[i]
 
 
-	def compute_objective_function(self,):
-		pass
-
-
-	def update_entity_metric(self,):
-		pass
+	def update_entity_metric(self):
+		self.entitymetric = np.ones(self.entityfeaturedim) * self.metricupdateshift
+		nummentions = len(self.hmentityfeat)
+		for ent,feat in self.hmentityfeat.iteritems():
+			k = self.hmentitylab[ent]
+			self.entitymetric += (feat - self.hmentityclustcent[k]) ** 2
+		for ent1, ent2 in self.lcorefcons:
+			k1 = self.hmentitylab[ent1]
+			k2 = self.hmentitylab[ent2]
+			if k1 != k2:
+				self.entitymetric += self.wlarge * (self.hmentityfeat[ent1] - self.hmentityfeat[ent2])**2
+		for ent1, ent2 in self.lcurentitycons:
+			k1 = self.hmentitylab[ent1]
+			k2 = self.hmentitylab[ent2]
+			if k1 != k2:
+				self.entitymetric += self.wsmall * (self.hmentityfeat[ent1] - self.hmentityfeat[ent2])**2
+		self.entitymetric = float(nummentions)/self.entitymetric
 
 
 	def update_event_metric(self,):
-		pass	
+		self.eventmetric = np.ones(self.eventfeaturedim) * self.metricupdateshift
+		nummentions = len(self.hmeventfeat)
+		for eve, feat in self.hmeventfeat.iteritems():
+			k = self.hmeventlab[eve]
+			self.eventmetric += (feat - self.hmeventclustcent[k]) ** 2
+		for eve1, eve2 in self.lcureventcons:
+			k1 = self.hmeventlab[eve1]
+			k2 = self.hmeventlab[eve2]
+			if k1 != k2:
+				self.eventmetric += self.wtiny * (self.hmeventfeat[eve1] - self.hmeventfeat[eve2]) ** 2
+		self.eventmetric = float(nummentions)/self.eventmetric
 
 
 	def initial_kmeans(self,):
+		pass
+
+
+	def compute_objective_function(self,):
 		pass
 
 
