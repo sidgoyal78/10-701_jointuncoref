@@ -40,10 +40,7 @@ def main():
 		stobjlist.append(storeClass(temp.numsentences, temp.numtokens[:], temp.wordfeatures, temp.entityfeatures[:], temp.eventfeatures[:], temp.entitycoref[:], temp.verbsubobj[:], fname,  temp.entitymentions, temp.eventmentions))
 		dsobjlist.append(temp)
 
-	
 	dill.dump(stobjlist, open('topic1_DS_ordered.pkl', 'wb'))
-#	print stobjlist
-		
 
 
 if __name__ == "__main__":
