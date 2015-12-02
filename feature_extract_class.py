@@ -17,8 +17,8 @@ class entityMention:
 	def __init__(self, txt, sentid, start, end, head):
 		self.txt = txt
 		self.sentid = sentid
-		self.start = start
-		self.end = end
+		self.start = start 	#Inclusive
+		self.end = end 		#Exclusive
 		self.head = head
 		
 ########################################
@@ -27,26 +27,26 @@ class eventMention:
 	def __init__(self, txt, sentid, start, end, head):
 		self.txt = txt
 		self.sentid = sentid
-		self.start = start
-		self.end = end
+		self.start = start 	#Inclusive
+		self.end = end 		#Exclusive
 		self.head = head
 
 ########################################
 
 class docStructure:
 	xmldoc = None
-	wordfeatures = None
-	numsentences = None
-	numtokens = None
-	parsetrees = None
-	dependgraphs = None
-	entitymentions = None
-	entitycoref = None
-	eventmentions = None
-	verbsubobj = None
-	w2vmodel = None
-	eventfeatures = None
-	entityfeatures = None	
+	wordfeatures = None		#Hashmap from (sentence_id,token_id), with both ids indexed from 1
+	numsentences = None		#Integer
+	numtokens = None		#List
+	parsetrees = None		#Hashmap from sentence_id, which is indexed from 1, to a ParseTree object instance
+	dependgraphs = None		#Hashmap from sentence_id, which is indexed from 1, to a 2-tuple
+	entitymentions = None	#List of entityMention object instances
+	entitycoref = None		#List of lists of coreferent entity mentions (as indices starting from 0, in entitymentions)
+	eventmentions = None	#List of eventMention object instances
+	verbsubobj = None		#List of length 3 lists of verb, subject and object (as indices in entitymentions and eventmentions) 
+	w2vmodel = None			#Word2Vec model required for feature vector generation
+	eventfeatures = None	#List of numpy.array storing feature vectors for all event mentions
+	entityfeatures = None	#List of numpy.array storing feature vectors for all entity mentions
 
 
 	def __init__(self, fname, w2vname=None):

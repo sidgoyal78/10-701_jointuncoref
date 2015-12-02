@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 class PCKMeans:
 	#Variable Initializations
 	kentity = None	#Ideas - assume average cluster size, regression model
-	kevent = None	#Ideas - assume average cluster size, regressino model
+	kevent = None	#Ideas - assume average cluster size, regression model
 	wlarge = None
 	wsmall = None
 	wtiny = None
@@ -14,24 +14,24 @@ class PCKMeans:
 
 	entityfeaturedim = None
 	eventfeaturedim = None
-	entitymetric = None
-	eventmetric = None
+	entitymetric = None		#numpy.array storing diagonal metric matrix entries for entity clustering
+	eventmetric = None		#numpy.array storing diagonal metric matrix entries for event clustering
 
-	hmentityfeat = None
-	hmeventfeat = None
-	lcorefcons = None
-	lallvso = None
+	hmentityfeat = None		#Hashmap from (doc_id,entity_mention_id), where doc_id is index in UNORDERED list, and mention id starts from 0
+	hmeventfeat = None		#Hashmap from (doc_id,event_mention_id), where doc_id is index in UNORDERED list, and mention id starts from 0
+	lcorefcons = None		#List of intra-document coreference constraints as 2 tuples
+	lallvso = None			#List of intra-document verb subject object relationships as 3 tuples
 
-	hmentitylab = None
-	hmeventlab = None
-	hmentityclustcent = None
-	hmeventclustcent = None
+	hmentitylab = None		#Hashmap from (doc_id,entity_mention_id), where doc_id is index in UNORDERED list, and mention id starts from 0
+	hmeventlab = None		#Hashmap from (doc_id,event_mention_id), where doc_id is index in UNORDERED list, and mention id starts from 0
+	hmentityclustcent = None	#Hashmap from entity cluster id (lies in {0,...,kentity-1}) 
+	hmeventclustcent = None		#Hashmap from event cluster id (lies in {0,...,kevent-1})
 
-	lcurentitycons = None
-	lcureventcons = None
+	lcurentitycons = None	#List of entity coreference constraints that result from current clustering of events
+	lcureventcons = None	#List of event coreference constraints that result from current clustering of entities
 	metricupdateshift = 0.00001
 
-	objfunctionvalues = None
+	objfunctionvalues = None	#List of objective function values after every iteration for graph plotting
 
 	def __init__(self,fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter):
 		self.kentity = kentity

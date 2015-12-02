@@ -30,7 +30,7 @@ def main():
 #		dsobjlist.append(temp)
 
 	print stobjlist
-	
+	#The list of storeClass object instances (for each document in the topic), need not be in order of increasing document id (use filename)
 	dill.dump(stobjlist, open('topic1_DS_objects.pkl', 'wb'))
 		
 
