@@ -6,13 +6,13 @@ import  copy
 class storeClass:
 	def __init__(self, numsent, numtok, wordfeatures, entityf, eventf, entitycoref, vso, fname):
 
-        	self.numsentences = numsent
-        	self.numtokens = numtok
+		self.numsentences = numsent
+		self.numtokens = numtok
 		self.wordfeatures = copy.deepcopy(wordfeatures)
 		self.entityfeatures = entityf
 		self.eventfeatures = eventf
-		self.entitycoref = entitycoref	
-	        self.verbsubobj = vso
+		self.entitycoref = entitycoref
+		self.verbsubobj = vso
 		self.filename = fname
 
 def main():
