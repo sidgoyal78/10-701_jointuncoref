@@ -80,6 +80,13 @@ class PCKMeans:
 			self.compute_objective_function()
 
 
+	def update_entity_labels(self,):
+		pass
+
+	def update_event_labels(self,):
+		pass
+
+
 	def construct_entitycons_from_eventclust(self):
 		#store pairwise constraints as tuples in a list: lcurentitycons
 		self.lcurentitycons = []
@@ -99,7 +106,7 @@ class PCKMeans:
 					self.lcurentitycons.append((tempv[0][j],tempv[0][k]))
 			for j in range(len(tempv[1])):
 				for k in range(j+1,len(tempv[1])):
-					self.lcurentitymentions.append((tempv[1][j],tempv[1][k]))
+					self.lcurentitycons.append((tempv[1][j],tempv[1][k]))
 
 
 	def construct_eventcons_from_entityclust(self):
@@ -129,28 +136,20 @@ class PCKMeans:
 		pass
 
 
-	def update_entity_labels(self,):
-		pass
-
-
-	def update_entity_clustercents(self,):
-		pass
-
-
 	def update_entity_metric(self,):
 		pass
 
 
-	def update_event_labels(self,):
-		pass
+	def update_event_metric(self,):
+		pass	
 
 
 	def update_event_clustercents(self,):
 		pass
 
 
-	def update_event_metric(self,):
-		pass	
+	def update_entity_clustercents(self,):
+		pass
 
 
 	def initial_kmeans(self,):
