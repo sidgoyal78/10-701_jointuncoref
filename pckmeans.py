@@ -196,6 +196,34 @@ class PCKMeans:
 					self.lcureventcons.append((tempv[1][j],tempv[1][k]))
 
 
+	def update_entity_clustercents(self):
+		runcount = {}
+		for i in range(self.kentity):
+			self.hmentityclustcent[i] = np.zeros(self.entityfeaturedim)
+			runcount[i] = 0
+		for ent,feat in self.hmentityfeat.iteritems():
+			k = self.hmentitylab[ent]
+			runcount[k] += 1
+			self.hmentityclustcent[k] += feat
+		for i in range(self.kentity):
+			if runcount[i] != 0:
+				self.hmentityclustcent[i] /= runcount[i]
+
+
+	def update_event_clustercents(self,):
+		runcount = {}
+		for i in range(self.kevent):
+			self.hmeventclustcent[i] = np.zeros(self.eventfeaturedim)
+			runcount[i] = 0
+		for eve,feat in self.hmeventfeat.iteritems():
+			k = self.hmeventlab[eve]
+			runcount[k] += 1
+			self.hmeventclustcent[k] += feat
+		for i in range(self.kevent):
+			if runcount[i] != 0:
+				self.hmeventclustcent[i] /= runcount[i]
+
+
 	def compute_objective_function(self,):
 		pass
 
@@ -204,17 +232,8 @@ class PCKMeans:
 		pass
 
 
-
 	def update_event_metric(self,):
 		pass	
-
-
-	def update_event_clustercents(self,):
-		pass
-
-
-	def update_entity_clustercents(self,):
-		pass
 
 
 	def initial_kmeans(self,):
