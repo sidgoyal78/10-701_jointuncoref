@@ -78,8 +78,81 @@ class PCKMeans:
 			self.update_event_metric()
 			self.construct_entitycons_from_eventclust()
 			self.compute_objective_function()
+	
+	def paradistance(self, vec1, vec2, metric):
+		temp = vec1 - vec2
+		return np.dot(temp , metric * temp)
+	
+
+	def update_entity_labels(self):
+		
+		shuffkeys =  self.hmentityfeat.keys()
+		np.random.shuffle(shuffkeys)
+		
+		for entkey in shuffkeys:
+			distances = np.zeros(self.kentity)
+			
+			# now retaining the required parts of self.lcorefcons and self.lcurentitycons
+			req_corefcons = []
+			req_curentitycons = []
+			for tup in self.lcorefcons:
+				if tup[0] == entkey:
+					req_corefcons.append(tup)
+				elif tup[1] == entkey:
+					req_corefcons.append((tup[1], tup[0]))
+			for tup in self.lcurentitycons:
+				if tup[0] == entkey:
+					req_curentitycons.append(tup)
+				elif tup[1] == entkey:
+					req_curentitycons.append((tup[1], tup[0]))
+
+			# now looping over all the entity clusters and getting the distances
+			for i in range(self.kentity):
+				distances[i] += self.paradistance(self.hmentityfeat[entkey], self.hmentityclustcent[i], self.entitymetric)
+				
+				#now looking at the coref constraints
+				for corefcon in req_corefcons:
+					if self.hmentitylab[corefcon[1]] != i:
+						distances[i] += self.wlarge * self.paradistance(self.hmentitfeat[entkey], self.hmentityfeat[corefcon[1]], self.entitymetric)
+				#now looking at the current entity constraints
+				for curentcon in req_curentitycons:
+					if self.hmentitylab[curentcon[1]] != i:
+						distances[i] += self.wsmall * self.paradistance(self.hmentityfeat[entkey], self.hmentityfeat[curentcon[1]], self.entitymetric)
+			# now deciding the label
+			reqdlabel = np.argmin(distances)
+			self.hmentitylab[entkey] = reqdlabel
 
 
+
+	def update_event_labels(self):
+		shuffkeys = self.hmeventfeat.keys()
+		np.random.shuffle(shuffkeys)
+		
+		for evtkey in shuffkeys:
+			distances = np.zeros(self.kevent)
+			
+			#now we only need self.lcureventcons
+			req_cureventcons= []
+			for curevtcon in self.lcureventcons:
+				if curevtcon[0] == evtkey:
+					req_cureventcons.append(curevtcon)
+				elif curevtcon[1] == evtkey:
+					req_cureventcons.append((curevtcon[1], curevtcon[0]))
+				
+			## now we look at distances from the kevent clusters
+			for i in range(self.kevent):
+				distances[i] += self.paradistance(self.hmeventfeat[evtkey], self.hmeventclustercent[i], self.eventmetric)
+			
+				## now looking at thhe current event constraints		
+				for curevtcon in req_cureventcons:
+					if self.hmeventlab[curevtcon[1]] != i:
+						distances[i] += self.wtiny * self.paradistance(self.hmeventfeat[evtkey], self.hmeventfeat[curevtcon[1]], self.eventmetric)
+			
+			reqlabel = np.argmin(distances)
+			self.hmeventlab[evtkey] = reqlabel
+
+			 
+				
 	def construct_entitycons_from_eventclust(self):
 		#store pairwise constraints as tuples in a list: lcurentitycons
 		self.lcurentitycons = []
@@ -99,7 +172,7 @@ class PCKMeans:
 					self.lcurentitycons.append((tempv[0][j],tempv[0][k]))
 			for j in range(len(tempv[1])):
 				for k in range(j+1,len(tempv[1])):
-					self.lcurentitymentions.append((tempv[1][j],tempv[1][k]))
+					self.lcurentitycons.append((tempv[1][j],tempv[1][k]))
 
 
 	def construct_eventcons_from_entityclust(self):
@@ -129,8 +202,6 @@ class PCKMeans:
 		pass
 
 
-	def update_entity_labels(self,):
-		pass
 
 
 	def update_entity_clustercents(self,):
@@ -141,8 +212,6 @@ class PCKMeans:
 		pass
 
 
-	def update_event_labels(self,):
-		pass
 
 
 	def update_event_clustercents(self,):
