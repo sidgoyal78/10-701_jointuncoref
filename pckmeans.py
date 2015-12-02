@@ -262,8 +262,52 @@ class PCKMeans:
 		pass
 
 
-	def compute_objective_function(self,):
-		pass
+	def compute_objective_function(self):
+		J = 0.0
+
+		# Initially looking at terms concerning the entity mentions
+		for ent, feat in self.hmentityfeat.iteritems():
+			k = self.hmentitylab[ent]
+			J += self.paradistance(feat, self.hmentityclustcent[k], self.entitymetric)
+
+		tempsum = 0.0
+		for i in self.entitymetric:
+			tempsum += np.log(i)
+		J -= tempsum
+		
+		#now looking at coref entity constraints
+		for ent1, ent2 in self.lcorefcons:
+			k1 = self.hmentitylab[ent1]
+			k2 = self.hmentitylab[ent2]
+			if k1 != k2:
+				J += self.wlarge * self.paradistance(self.hmentityfeat[ent1], self.hmentityfeat[ent2], self.entitymetric)
+		
+		# now looking at current entity constraints
+		for ent1, ent2 in self.lcurentitycons:
+			k1 = self.hmentitylab[ent1]
+			k2 = self.hmentitylab[ent2]
+			if k1 != k2:
+				J += self.wsmall * self.paradistance(self.hmentityfeat[ent1], self.hmentityfeat[ent2], self.entitymetric)
+		
+		## now, we consider the event constraints
+		for evt, feat in self.hmeventfeat.iteritems():
+			k = self.hmeventlab[evt]
+			J += self.paradistance(feat, self.hmeventclustcent[k], self.eventmetric)
+
+		tempsum = 0.0
+		for i in self.eventmetric:
+			tempsum += np.log(i)
+		J -= tempsum
+		
+		# now looking at the current event constraints
+		for evt1, evt2 in self.lcureventcons:
+			k1 = self.hmeventlab[evt1]	
+			k2 = self.hmeventlab[evt2]	
+			if k1 != k2:
+				J += self.wtiny * self.paradistance(self.hmeventfeat[evt1], self.hmeventfeat[evt2], self.eventmetric)
+		
+		return J
+
 
 
 
