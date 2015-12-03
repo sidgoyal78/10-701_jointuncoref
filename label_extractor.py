@@ -26,7 +26,7 @@ def extract_labels_for_scoring(menfname,scobjfname,opfname,option):
 	while not(line[line.index('\t') + 1:].startswith(topid)):
 		line = menfptr.readline()
 
-	while line[line.index('\t') + 1:].startswith(topid):
+	while line != '' and line[line.index('\t') + 1:].startswith(topid):
 		#Remember that endtokind  is exclusive, correct for indexing starting from 0 for sentences and tokens
 		(norv,_,docid,sentind,corefid,starttokind,endtokind,_,_) = line.split('\t')
 		docid = int(docid)
@@ -38,9 +38,8 @@ def extract_labels_for_scoring(menfname,scobjfname,opfname,option):
 		endtokind = int(endtokind) + 1
 		if (option == 0 and norv == 'N') or (option == 1 and norv == 'V') or (option == 2):
 			reldoc = hmdocidtoscobj[docid]
-			for i in range(starttokind,endtokind):
-				print line
-				if ((sentind,i) in reldoc.wordfeatures) and ((sentind,starttokind) in reldoc.wordfeatures) and ((sentind,endtokind) in reldoc.wordfeatures):
+			if ((sentind,starttokind) in reldoc.wordfeatures) and ((sentind,endtokind-1) in reldoc.wordfeatures):
+				for i in range(starttokind,endtokind):
 					reldoc.wordfeatures[(sentind,i)][3].append((corefid,starttokind,endtokind))
 		line = menfptr.readline()
 	menfptr.close()
