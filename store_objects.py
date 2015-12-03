@@ -15,7 +15,7 @@ class storeClass:
 		self.verbsubobj = vso
 		self.filename = fname
 		self.entitymentions = em
-                self.eventmentions = ev
+		self.eventmentions = ev
 
 
 def main():
