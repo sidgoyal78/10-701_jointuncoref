@@ -2,6 +2,7 @@ import dill
 import numpy as np
 import sklearn.cluster as sc
 import matplotlib.pyplot as plt
+import copy
 
 class PCKMeans:
 	#Variable Initializations
@@ -355,17 +356,74 @@ class PCKMeans:
 		
 		return J
 
-	def writelog(self, fname):
+	def modifyparanthesis(self, listofid):
 
-		f = open(fname, 'w')
+		for i in range(len(listofid)):
+			sublist = listofid[i]
+
+			flag  = 0
+			if type(sublist[0]) == int:
+				flag = 1
+				toadd = "(" + str(sublist[0])
+				if type(sublist[1]) != int or  sublist[1] != sublist[0]:
+					flag = 0
+					toadd  += ")"
+				sublist[0] = toadd
+			else:
+				sublist[0] = '-'
+			for i in range(1, len(sublist) - 1):
+				if type(sublist[i]) == int:
+					if  flag == 1:
+						if type(sublist[i+1]) == int and sublist[i+1] == sublist[i]:
+							sublist[i] = '-'
+						else:
+							sublist[i] = str(sublist[i]) + ")"
+							flag = 0
+					elif flag == 0:
+						toadd = "(" + str(sublist[i])
+						flag = 1
+						if type(sublist[i+1]) != int or sublist[i + 1]!=sublist[i]:
+							toadd += ")"
+							flag = 0
+						sublist[i] = toadd
+				else:
+					sublist[i] = '-'
+			if flag == 1:
+				sublist[-1] = str(sublist[-1]) + ")"
+			else:
+				sublist[-1] = '-'
+
+
+
+	def writelog(self, fname1, fname2, fname3, fname4, topicid):
+
+		f1 = open(fname1, 'w')
+		f2 = open(fname2, 'w')
+#		f3 = open(fname3, 'w')
+
+		f4 = open(fname4, 'w')
+
+		f1.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
+		f2.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
+		f4.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
+		#f1.write('#begin document (topic'  + str(topicid) + 'entity);' + '\n')
+		#f2.write('#begin document (topic' + str(topicid) + 'event);' + '\n')
+		#f3.write('#begin document (topic' + str(topicid) + 'both);' + '\n')
+	
+
 		obcnt = 0
 		for i in range(len(self.dlobj)):
 			curobj = self.dlobj[i]  # the current object
-			
+			name, topic, docid = curobj.filename.split('/')[-1].split('.')[0].split('_')
 			allsent = []
 			allcorresp = []
 			alleventmentions = []
 			allentitymentions = []
+			alltogether = []
+
+			thmidx = {}  # hash map for special format in the joint entity and event setting
+			hmonlyevt = {}
+			hmonlyent = {}
 			for j in range(curobj.numsentences):
 			# creating a sentence
 				sentcounter = j + 1
@@ -387,22 +445,94 @@ class PCKMeans:
 			
 			encount = 0
 			for j in curobj.entitymentions:
-				entmenob = j
-				sentref = entmenob.sentid - 1
-				actuallabel = self.hmentitylab[(obcnt, encount)]
-				for k in range(entmenob.start - 1, entmenob.end - 1):
-					alleventmentions[sentref][k] = actuallabel
-					
-				encount += 1	
-			obcnt += 1
-			print "------------------------"
-			print allsent
-			print
-			print alleventmentions
-			print
-			print
+				entmenobj = j
+				sentref = entmenobj.sentid - 1
+				
+				actuallabel = int(self.hmentitylab[(obcnt, encount)])
+				for k in range(entmenobj.start - 1, entmenobj.end - 1):
+					allentitymentions[sentref][k] = actuallabel
+				encount += 1
+				if entmenobj.sentid not in hmonlyent:
+					hmonlyent[entmenobj.sentid] = [('N', entmenobj.start, entmenobj.end, actuallabel)] #just need actuallabels no need to shift			 
+				else:
+					hmonlyent[entmenobj.sentid].append(('N', entmenobj.start, entmenobj.end, actuallabel))
 
-		
+
+				if entmenobj.sentid not in thmidx:
+					thmidx[entmenobj.sentid] = [('N', entmenobj.start, entmenobj.end, actuallabel + self.kevent)]
+				else:
+					thmidx[entmenobj.sentid].append(('N', entmenobj.start, entmenobj.end, actuallabel + self.kevent))
+
+			alltogether = copy.deepcopy(allentitymentions)
+			evtcount = 0
+			for j in curobj.eventmentions:
+				evtmenobj = j
+				sentref = evtmenobj.sentid - 1
+				actuallabel = int(self.hmeventlab[(obcnt, evtcount)])
+				shiftedref = self.kentity
+				for k in range(evtmenobj.start - 1, evtmenobj.end - 1):
+					alleventmentions[sentref][k] = actuallabel
+					alltogether[sentref][k] = actuallabel + shiftedref
+				evtcount += 1
+				if evtmenobj.sentid not in hmonlyevt:
+					hmonlyevt[evtmenobj.sentid] = [('V', evtmenobj.start, evtmenobj.end, actuallabel)]
+				else:
+					hmonlyevt[evtmenobj.sentid].append(('V', evtmenobj.start, evtmenobj.end, actuallabel))
+					
+	
+				if evtmenobj.sentid not in thmidx:
+					thmidx[evtmenobj.sentid] = [('V', evtmenobj.start, evtmenobj.end, actuallabel)]
+				else:
+					thmidx[evtmenobj.sentid].append(('V', evtmenobj.start, evtmenobj.end, actuallabel))
+
+			obcnt += 1
+
+			self.indexwrite(f1, topic, docid, hmonlyent)
+			self.indexwrite(f2, topic, docid, hmonlyevt)
+			self.indexwrite(f4, topic, docid, thmidx)
+#			print allsent
+####			print
+#			print allentitymentions
+#			print
+
+			self.modifyparanthesis(allentitymentions)
+
+#			print
+#			print alleventmentions
+#			print
+
+			self.modifyparanthesis(alleventmentions)
+			self.modifyparanthesis(alltogether)
+			#self.perdocwrite(f1,"doc" + docid, allsent, allentitymentions)
+			#self.perdocwrite(f2,"doc" + docid, allsent, alleventmentions)
+			#self.perdocwrite(f3, "doc" + docid, allsent, alltogether)
+		#f1.write('#end document')
+		#f2.write('#end document')
+		#f3.write('#end document')
+
+		f1.write("\t")
+		f2.write("\t")
+		f4.write("\t")
+
+		f1.close()
+		f2.close()
+		#f3.close()
+		f4.close()
+
+
+	def indexwrite(self, fptr, topic, docid, thmidx):
+		for i in sorted(thmidx.keys()):
+			sentnum = i - 1
+			for iden, pstart, pend, clustlabel in thmidx[i]:
+				fptr.write(iden + "\t" + topic + "\t" + docid + "\t" + str(sentnum) + "\t" + str(clustlabel) + "\t" + str(pstart - 1) + "\t" + str(pend - 1) + "\t" + "0" + "\t" + "0" + "\n")
+
+	def perdocwrite(self,fptr, fname, allsent, allment):
+		for i in range(len(allsent)):
+			for j in range(len(allsent[i])):
+				fptr.write(fname + "\t" + str(i) + "\t" + str(j) + "\t" + allsent[i][j] + "\t" + allment[i][j] + "\n")
+		fptr.write("\n")
+
+	
 #####FOR TESTING PURPOSES ONLY#####
 
 if __name__ == '__main__':
@@ -414,10 +544,16 @@ if __name__ == '__main__':
 	wtiny = 1
 	numiter = 5
 	shitobj = PCKMeans(fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter)
-	plt.plot(shitobj.objfunctionvalues)	
-	plt.show()
-	shitobj.writelog('tryeval.prop')
-	print shitobj.hmentitylab
+	#plt.plot(shitobj.objfunctionvalues)	
+	#plt.show()
+	
+	entfile = 'topic1_onlyentity.txt'
+	evtfile = 'topic1_onlyevent.txt'
+	bothfile = 'evaltopic1both.txt'
+	idxfile_for_gen = 'topic1_both.txt'
+	topicid = 1
+	shitobj.writelog(entfile, evtfile, bothfile, idxfile_for_gen, topicid)
+	#print shitobj.hmentitylab
 	#print len(shitobj.hmentityfeat.keys()), len(shitobj.hmeventfeat.keys())
 	#print sorted(shitobj.hmentityfeat.keys())
 	#print sorted(shitobj.hmeventfeat.keys())

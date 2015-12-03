@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import sys
 import sexpdata
+import sys, codecs
 
 class Node:
 	def __init__(self, attr):
@@ -11,6 +14,11 @@ class ParseTree:
 	
 	def __init__(self, parstr, numtokens):
 		self.hm = {}
+		self.flag = 0
+		parstr = parstr.replace(u'\xa0', u'-')
+##		print parstr
+#		print numtokens
+#		print
 		sexpl = self.get_new_output(parstr, numtokens)
 		self.parsetree = self.constructtree(sexpl)
 		self.numtokens = numtokens
@@ -48,6 +56,13 @@ class ParseTree:
 			
 
 	def constructtree(self, strlist):
+#		if self.flag == 0:
+#			self.flag = 1
+#			print
+#			print
+#			print "Called with", strlist
+#			print
+#		print "--strlist--", strlist
 		if len(strlist) == 0:
 			return None
 
@@ -82,7 +97,8 @@ class ParseTree:
 		   	q2 = []
 		    	if (len(q1) == 0):
 				break
-	
+
+
 
 '''strn = ['NP', ['NP', ['NP', ['DT', 'Another'], ['NN', 'day']], ['PP', ['IN', 'in'], ['NP', ['NNP', 'Hollywood']]]], [':', ';'], ['NP', ['NP', ['DT', 'another'], ['NN', 'star']], ['PP', ['IN', 'in'], ['NP', ['NN', 'rehab']]]], ['.', '.']]
 
