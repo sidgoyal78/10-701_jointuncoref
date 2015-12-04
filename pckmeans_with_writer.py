@@ -356,43 +356,6 @@ class PCKMeans:
 		
 		return J
 
-	def modifyparanthesis(self, listofid):
-
-		for i in range(len(listofid)):
-			sublist = listofid[i]
-
-			flag  = 0
-			if type(sublist[0]) == int:
-				flag = 1
-				toadd = "(" + str(sublist[0])
-				if type(sublist[1]) != int or  sublist[1] != sublist[0]:
-					flag = 0
-					toadd  += ")"
-				sublist[0] = toadd
-			else:
-				sublist[0] = '-'
-			for i in range(1, len(sublist) - 1):
-				if type(sublist[i]) == int:
-					if  flag == 1:
-						if type(sublist[i+1]) == int and sublist[i+1] == sublist[i]:
-							sublist[i] = '-'
-						else:
-							sublist[i] = str(sublist[i]) + ")"
-							flag = 0
-					elif flag == 0:
-						toadd = "(" + str(sublist[i])
-						flag = 1
-						if type(sublist[i+1]) != int or sublist[i + 1]!=sublist[i]:
-							toadd += ")"
-							flag = 0
-						sublist[i] = toadd
-				else:
-					sublist[i] = '-'
-			if flag == 1:
-				sublist[-1] = str(sublist[-1]) + ")"
-			else:
-				sublist[-1] = '-'
-
 	def writelog(self, fname1, fname2, fname3):
 		f1 = open(fname1, 'w')
 		f2 = open(fname2, 'w')
