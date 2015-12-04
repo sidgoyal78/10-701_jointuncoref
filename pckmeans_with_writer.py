@@ -393,64 +393,29 @@ class PCKMeans:
 			else:
 				sublist[-1] = '-'
 
-
-
-	def writelog(self, fname1, fname2, fname3, fname4, topicid):
-
+	def writelog(self, fname1, fname2, fname3):
 		f1 = open(fname1, 'w')
 		f2 = open(fname2, 'w')
-#		f3 = open(fname3, 'w')
-
-		f4 = open(fname4, 'w')
+		f3 = open(fname3, 'w')
 
 		f1.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
 		f2.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
-		f4.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
-		#f1.write('#begin document (topic'  + str(topicid) + 'entity);' + '\n')
-		#f2.write('#begin document (topic' + str(topicid) + 'event);' + '\n')
-		#f3.write('#begin document (topic' + str(topicid) + 'both);' + '\n')
+		f3.write('## Entity(N) or Event(V)?' + '\t' + 'Topic' + '\t' + 'Doc' + '\t' + 'Sentence Number' +'\t' +  'CorefID' + '\t' + 'StartIdx'  +  '\t' + 'EndIdx' + '\t' +  'StartCharIdx' + '\t'    + 'EndCharIdx' + '\n')
 	
 
 		obcnt = 0
 		for i in range(len(self.dlobj)):
 			curobj = self.dlobj[i]  # the current object
 			name, topic, docid = curobj.filename.split('/')[-1].split('.')[0].split('_')
-			allsent = []
-			allcorresp = []
-			alleventmentions = []
-			allentitymentions = []
-			alltogether = []
 
 			thmidx = {}  # hash map for special format in the joint entity and event setting
 			hmonlyevt = {}
 			hmonlyent = {}
-			for j in range(curobj.numsentences):
-			# creating a sentence
-				sentcounter = j + 1
-				numtokens = curobj.numtokens[j]
-					
-				sentence = []
-				corres = []
-				evment = []
-				enment = []
-				for k in range(numtokens):
-					sentence.append(curobj.wordfeatures[(sentcounter, k + 1)][0])
-					corres.append(None)
-					evment.append(None)
-					enment.append(None)
-				allsent.append(sentence)
-				allcorresp.append(corres)
-				alleventmentions.append(evment)
-				allentitymentions.append(enment)
-			
 			encount = 0
 			for j in curobj.entitymentions:
 				entmenobj = j
 				sentref = entmenobj.sentid - 1
-				
 				actuallabel = int(self.hmentitylab[(obcnt, encount)])
-				for k in range(entmenobj.start - 1, entmenobj.end - 1):
-					allentitymentions[sentref][k] = actuallabel
 				encount += 1
 				if entmenobj.sentid not in hmonlyent:
 					hmonlyent[entmenobj.sentid] = [('N', entmenobj.start, entmenobj.end, actuallabel)] #just need actuallabels no need to shift			 
@@ -463,16 +428,11 @@ class PCKMeans:
 				else:
 					thmidx[entmenobj.sentid].append(('N', entmenobj.start, entmenobj.end, actuallabel + self.kevent))
 
-			alltogether = copy.deepcopy(allentitymentions)
 			evtcount = 0
 			for j in curobj.eventmentions:
 				evtmenobj = j
 				sentref = evtmenobj.sentid - 1
 				actuallabel = int(self.hmeventlab[(obcnt, evtcount)])
-				shiftedref = self.kentity
-				for k in range(evtmenobj.start - 1, evtmenobj.end - 1):
-					alleventmentions[sentref][k] = actuallabel
-					alltogether[sentref][k] = actuallabel + shiftedref
 				evtcount += 1
 				if evtmenobj.sentid not in hmonlyevt:
 					hmonlyevt[evtmenobj.sentid] = [('V', evtmenobj.start, evtmenobj.end, actuallabel)]
@@ -489,35 +449,16 @@ class PCKMeans:
 
 			self.indexwrite(f1, topic, docid, hmonlyent)
 			self.indexwrite(f2, topic, docid, hmonlyevt)
-			self.indexwrite(f4, topic, docid, thmidx)
-#			print allsent
-####			print
-#			print allentitymentions
-#			print
+			self.indexwrite(f3, topic, docid, thmidx)
 
-			self.modifyparanthesis(allentitymentions)
-
-#			print
-#			print alleventmentions
-#			print
-
-			self.modifyparanthesis(alleventmentions)
-			self.modifyparanthesis(alltogether)
-			#self.perdocwrite(f1,"doc" + docid, allsent, allentitymentions)
-			#self.perdocwrite(f2,"doc" + docid, allsent, alleventmentions)
-			#self.perdocwrite(f3, "doc" + docid, allsent, alltogether)
-		#f1.write('#end document')
-		#f2.write('#end document')
-		#f3.write('#end document')
 
 		f1.write("\t")
 		f2.write("\t")
-		f4.write("\t")
+		f3.write("\t")
 
 		f1.close()
 		f2.close()
-		#f3.close()
-		f4.close()
+		f3.close()
 
 
 	def indexwrite(self, fptr, topic, docid, thmidx):
@@ -525,12 +466,6 @@ class PCKMeans:
 			sentnum = i - 1
 			for iden, pstart, pend, clustlabel in thmidx[i]:
 				fptr.write(iden + "\t" + topic + "\t" + docid + "\t" + str(sentnum) + "\t" + str(clustlabel) + "\t" + str(pstart - 1) + "\t" + str(pend - 1) + "\t" + "0" + "\t" + "0" + "\n")
-
-	def perdocwrite(self,fptr, fname, allsent, allment):
-		for i in range(len(allsent)):
-			for j in range(len(allsent[i])):
-				fptr.write(fname + "\t" + str(i) + "\t" + str(j) + "\t" + allsent[i][j] + "\t" + allment[i][j] + "\n")
-		fptr.write("\n")
 
 	
 #####FOR TESTING PURPOSES ONLY#####
@@ -549,10 +484,8 @@ if __name__ == '__main__':
 	
 	entfile = 'topic1_onlyentity.txt'
 	evtfile = 'topic1_onlyevent.txt'
-	bothfile = 'evaltopic1both.txt'
-	idxfile_for_gen = 'topic1_both.txt'
-	topicid = 1
-	shitobj.writelog(entfile, evtfile, bothfile, idxfile_for_gen, topicid)
+	bothfile = 'topic1_both.txt'
+	shitobj.writelog(entfile, evtfile, bothfile)
 	#print shitobj.hmentitylab
 	#print len(shitobj.hmentityfeat.keys()), len(shitobj.hmeventfeat.keys())
 	#print sorted(shitobj.hmentityfeat.keys())
