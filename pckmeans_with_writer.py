@@ -434,24 +434,26 @@ class PCKMeans:
 #####FOR TESTING PURPOSES ONLY#####
 
 if __name__ == '__main__':
-	fpath = 'topic1_DS_ordered.pkl'
+	fpath = '../topicobjects/topic1_DS_ordered.pkl'
 	kentity = 40
 	kevent = 25
 	wlarge = 8
 	wsmall = 4
 	wtiny = 1
 	numiter = 5
-	shitobj = PCKMeans(fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter)
-	#plt.plot(shitobj.objfunctionvalues)	
+	pckobj = PCKMeans(fpath,kentity,kevent,wlarge,wsmall,wtiny,numiter)
+	#plt.plot(pckobj.objfunctionvalues)	
 	#plt.show()
 	
 	entfile = 'topic1_onlyentity.txt'
 	evtfile = 'topic1_onlyevent.txt'
 	bothfile = 'topic1_both.txt'
-	shitobj.writelog(entfile, evtfile, bothfile)
-	#print shitobj.hmentitylab
-	#print len(shitobj.hmentityfeat.keys()), len(shitobj.hmeventfeat.keys())
-	#print sorted(shitobj.hmentityfeat.keys())
-	#print sorted(shitobj.hmeventfeat.keys())
-	#print shitobj.hmentityfeat[(14,0)]
-	#print shitobj.hmentityfeat[(14,0)].shape
+	pckobj.writelog(entfile, evtfile, bothfile)
+	print pckobj.entitymetric
+	print pckobj.eventmetric	
+	#print pckobj.hmentitylab
+	#print len(pckobj.hmentityfeat.keys()), len(pckobj.hmeventfeat.keys())
+	#print sorted(pckobj.hmentityfeat.keys())
+	#print sorted(pckobj.hmeventfeat.keys())
+	#print pckobj.hmentityfeat[(14,0)]
+	#print pckobj.hmentityfeat[(14,0)].shape
