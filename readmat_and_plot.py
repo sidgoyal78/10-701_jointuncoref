@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as colit
-
+import os
 import scipy.io as sio
 
 def plotit(kenlist, kevlist, topid, data, title, outputfile):
@@ -28,17 +28,23 @@ def plotit(kenlist, kevlist, topid, data, title, outputfile):
 def main():
 	kenlist = range(15,61,5)
 	kevlist = range(4,41,4)
-	hm = sio.loadmat('6_both.mat')
 	topid = 6
-		
+
+
+	typesf = ['onlyentity', 'onlyevent', 'both']		
 	w = [1,2,3]
 	namelst = ['muc', 'bcub', 'ceafe', 'blanc']
 
-	for i in range(len(w)):
+	oppath = 'heatmaps/topic' + str(topid) +"/"
+	os.system("mkdir -p " + oppath)
+	for k in typesf:
+	  hm = sio.loadmat(str(topid) + "_" + k + ".mat")
+	
+	  for i in range(len(w)):
 		for scoremetric in namelst:
 			key  = scoremetric + "_w" + str(w[i])
-			title =  scoremetric.upper() + "-" + "Topic:" + str(topid) + "-w" + str(w[i])
-			fname = 'heatmaps/' + scoremetric + "_topic" + str(topid) + "_w" + str(w[i])
+			title =  scoremetric.upper() + "-" + "Topic:" + str(topid) + "-w" + str(w[i]) + "-" + k
+			fname = oppath + scoremetric + "_topic" + str(topid) + "_w" + str(w[i]) + "_" + k
 		#	print hm[key]
 			plotit(kenlist, kevlist, topid, hm[key], title , fname)
 	
